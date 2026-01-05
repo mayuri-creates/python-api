@@ -9,20 +9,13 @@ Learn:
 - Query parameters in URLs
 """
 
-"""
-Part 3: Dynamic Queries with User Input
-=======================================
-Difficulty: Intermediate
-"""
 
 import requests
 
-
+#  USER INFO 
 def get_user_info():
-    print("\nUser Information\n")
-
-    user_id = input("Enter user ID (1-10): ")
-
+    print("\n=== User Information ===\n")
+    user_id = input("Enter user ID (1-10): ").strip()
     if not user_id.isdigit():
         print("Please enter a valid number.")
         return
@@ -39,113 +32,118 @@ def get_user_info():
     else:
         print("User not found.")
 
-
-def search_posts():
-    print("\nPost Search\n")
-
-    user_id = input("Enter user ID (1-10): ")
-
+#  POSTS + COMMENTS 
+def search_posts_with_comments():
+    print("\n=== User Posts & Comments ===\n")
+    user_id = input("Enter user ID (1-10): ").strip()
     if not user_id.isdigit():
         print("Please enter a valid number.")
         return
 
-    url = "https://jsonplaceholder.typicode.com/posts"
-    params = {"userId": user_id}
+    # Fetch posts
+    posts = requests.get("https://jsonplaceholder.typicode.com/posts").json()
+    # Fetch comments
+    comments = requests.get("https://jsonplaceholder.typicode.com/comments").json()
 
-    response = requests.get(url)
-    posts = response.json()
-
-    print("\nPosts:")
+    found_posts = False
     for post in posts:
         if str(post["userId"]) == user_id:
-            print("-", post["title"])
+            found_posts = True
+            print(f"\nPost: {post['title']}")
+            print("Comments:")
+            for comment in comments:
+                if comment["postId"] == post["id"]:
+                    print("-", comment["name"])
+    if not found_posts:
+        print("No posts found for this user.")
 
+#  CRYPTO PRICE 
+CRYPTO_IDS = {
+    "bitcoin": "btc-bitcoin",
+    "ethereum": "eth-ethereum",
+    "dogecoin": "doge-dogecoin",
+    "cardano": "ada-cardano",
+    "solana": "sol-solana",
+    "ripple": "xrp-xrp"
+}
 
 def get_crypto_price():
-    print("\nCrypto Price\n")
-
-    coin_id = input("Enter coin ID (btc-bitcoin / eth-ethereum): ").strip().lower()
+    print("\n=== Crypto Price ===\n")
+    coin_id = input("Enter coin (e.g., btc-bitcoin / eth-ethereum): ").strip().lower()
+    coin_id = CRYPTO_IDS.get(coin_id, coin_id)
 
     url = f"https://api.coinpaprika.com/v1/tickers/{coin_id}"
     response = requests.get(url)
 
     if response.status_code == 200:
         data = response.json()
-        price = data["quotes"]["USD"]["price"]
-        print("Coin:", data["name"])
-        print("Price (USD):", round(price, 2))
+        usd = data["quotes"]["USD"]
+        print(f"Coin: {data['name']} ({data['symbol']})")
+        print(f"Price (USD): ${usd['price']:.2f}")
+        print(f"24h Change: {usd['percent_change_24h']:+.2f}%")
     else:
         print("Coin not found.")
 
-
-
-# Exercise 1: Weather Function
-
+#  WEATHER 
+CITIES = {
+    "delhi": (28.6139, 77.2090),
+    "mumbai": (19.0760, 72.8777),
+    "bangalore": (12.9716, 77.5946),
+    "chennai": (13.0827, 80.2707),
+    "kolkata": (22.5726, 88.3639),
+    "hyderabad": (17.3850, 78.4867)
+}
 
 def get_weather():
-    print("\nWeather Info\n")
-
-    print("Cities available: Delhi, Mumbai")
-    city = input("Enter city name: ").lower()
-
-    if city == "delhi":
-        lat, lon = 28.61, 77.23
-    elif city == "mumbai":
-        lat, lon = 19.07, 72.87
-    else:
+    print("\n=== Weather Info ===\n")
+    print("Available cities:", ", ".join(CITIES.keys()))
+    city = input("Enter city: ").lower().strip()
+    if city not in CITIES:
         print("City not available.")
         return
 
+    lat, lon = CITIES[city]
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
     response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        weather = data["current_weather"]
+        print(f"\nWeather in {city.title()}:")
+        print(f"Temperature: {weather['temperature']}°C")
+        print(f"Wind Speed: {weather['windspeed']} km/h")
+    else:
+        print("Could not fetch weather.")
 
-    data = response.json()
-    weather = data["current_weather"]
-
-    print("Temperature:", weather["temperature"], "°C")
-    print("Wind Speed:", weather["windspeed"], "km/h")
-
-
-# Exercise 2: Search Todos by Status
-
-
+# TODOS 
 def search_todos():
-    print("\nTodo Search\n")
-
+    print("\n=== Todo Search ===\n")
     status = input("Enter status (true / false): ").lower()
-
     if status not in ["true", "false"]:
         print("Invalid input.")
         return
 
-    url = "https://jsonplaceholder.typicode.com/todos"
-    response = requests.get(url)
-    todos = response.json()
+    todos = requests.get("https://jsonplaceholder.typicode.com/todos").json()
+    filtered = [todo for todo in todos if str(todo["completed"]).lower() == status]
+    print(f"Total todos with completed={status}: {len(filtered)}")
+    for todo in filtered[:5]:  # Show first 5 for brevity
+        print("-", todo["title"])
 
-    count = 0
-    for todo in todos:
-        if str(todo["completed"]).lower() == status:
-            count += 1
-
-    print("Total todos with completed =", status, ":", count)
-
-
+# DASHBOARD MENU 
 def main():
     while True:
-        print("\nMenu")
-        print("1. User info")
-        print("2. User posts")
-        print("3. Crypto price")
-        print("4. Weather")
-        print("5. Todos")
+        print("\n=== MENU ===")
+        print("1. User Info")
+        print("2. User Posts + Comments")
+        print("3. Crypto Price")
+        print("4. Weather Info")
+        print("5. Todos by Status")
         print("6. Exit")
 
-        choice = input("Enter choice: ")
-
+        choice = input("Enter choice: ").strip()
         if choice == "1":
             get_user_info()
         elif choice == "2":
-            search_posts()
+            search_posts_with_comments()
         elif choice == "3":
             get_crypto_price()
         elif choice == "4":
@@ -153,14 +151,14 @@ def main():
         elif choice == "5":
             search_todos()
         elif choice == "6":
-            print("Program ended.")
+            print("Exiting program.")
             break
         else:
-            print("Wrong choice.")
-
+            print("Invalid choice. Try again.")
 
 if __name__ == "__main__":
     main()
+
 
 
 
